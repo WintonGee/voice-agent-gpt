@@ -31,13 +31,9 @@ activate:
 test:
 	$(PYTHON) test_local.py
 
-# ===========
-# LINTING (OPTIONAL)
-# ===========
-
-.PHONY: lint
-lint:
-	flake8 agent.py tts.py emailer.py config.py
+.PHONY: test_email
+test_email:
+	$(VENV_NAME)/bin/python test_email.py
 
 # ===========
 # CLEAN
