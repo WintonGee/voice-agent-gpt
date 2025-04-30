@@ -1,0 +1,6 @@
+flask
+openai
+requests
+sendgrid
+gunicorn
+python-dotenv
