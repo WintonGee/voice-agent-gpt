@@ -1,14 +1,15 @@
 import sendgrid
 from sendgrid.helpers.mail import Mail
-from config import SENDGRID_API_KEY, TWILIO_EMAIL_RECIPIENTS
+from config import SENDGRID_API_KEY
 
 def send_appointment_email(data):
+    sg = sendgrid.SendGridAPIClient(api_key=SENDGRID_API_KEY)
     message = Mail(
         from_email="agent@assorthealth.com",
-        to_emails=TWILIO_EMAIL_RECIPIENTS,
-        subject="New Patient Appointment Booked",
+        to_emails=["your.email@example.com"],  # Use test email first
+        subject="✅ New Appointment Booked",
         html_content=f"""
-        <strong>New appointment booked:</strong><br>
+        <strong>New Intake:</strong><br><br>
         Name: {data.get('name')}<br>
         DOB: {data.get('dob')}<br>
         Insurance: {data.get('insurance')}<br>
@@ -16,8 +17,7 @@ def send_appointment_email(data):
         Complaint: {data.get('complaint')}<br>
         Address: {data.get('address')}<br>
         Contact: {data.get('contact')}<br>
-        Chosen Appointment: {data.get('appointment')}
+        Appointment: {data.get('appointment')}
         """
     )
-    sg = sendgrid.SendGridAPIClient(SENDGRID_API_KEY)
     sg.send(message)

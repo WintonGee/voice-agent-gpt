@@ -1,62 +1,48 @@
-# Makefile for AI Voice Agent 🧠📞
+# Makefile — Phase 1: Local testing only 🧠💻
+# AI Voice Agent with GPT-4, Cartesia TTS, SendGrid
 
-APP_NAME=voice-agent
-GCP_PROJECT_ID=your-gcp-project-id
-REGION=us-central1
-IMAGE=gcr.io/$(GCP_PROJECT_ID)/$(APP_NAME)
-CLOUD_RUN_URL=https://$(APP_NAME)-$(REGION).a.run.app
-PORT=8080
+# ========
+# SETTINGS
+# ========
 
-# 🐍 Python virtualenv
+VENV_NAME=venv
+PYTHON=$(VENV_NAME)/bin/python
+
+# ===========
+# ENV SETUP
+# ===========
+
 .PHONY: venv
 venv:
-	python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+	python3 -m venv $(VENV_NAME)
+	$(PYTHON) -m pip install --upgrade pip
+	$(PYTHON) -m pip install -r requirements.txt
 
-# 🧪 Run Flask locally for dev
-.PHONY: run
-run:
-	export FLASK_APP=app.py && flask run --port=$(PORT)
+.PHONY: activate
+activate:
+	@echo "Run 'source $(VENV_NAME)/bin/activate' to activate the virtualenv"
 
-# 🧪 Run with Gunicorn (like prod)
-.PHONY: serve
-serve:
-	gunicorn -b 0.0.0.0:$(PORT) app:app --reload
+# ===========
+# RUN/TEST
+# ===========
 
-# 🧪 Test agent logic (can be expanded with pytest)
+# Run the CLI testing script
 .PHONY: test
 test:
-	python -m unittest discover -s tests
+	$(PYTHON) test_local.py
 
-# 🐳 Build Docker image
-.PHONY: docker-build
-docker-build:
-	docker build -t $(APP_NAME) .
+# ===========
+# LINTING (OPTIONAL)
+# ===========
 
-# 🐳 Run Docker locally
-.PHONY: docker-run
-docker-run:
-	docker run -p $(PORT):$(PORT) $(APP_NAME)
+.PHONY: lint
+lint:
+	flake8 agent.py tts.py emailer.py config.py
 
-# ☁️ Build + push to GCP Container Registry
-.PHONY: gcloud-build
-gcloud-build:
-	gcloud builds submit --tag $(IMAGE)
+# ===========
+# CLEAN
+# ===========
 
-# ☁️ Deploy to Google Cloud Run
-.PHONY: gcloud-deploy
-gcloud-deploy:
-	gcloud run deploy $(APP_NAME) \
-		--image $(IMAGE) \
-		--platform managed \
-		--region $(REGION) \
-		--allow-unauthenticated
-
-# 🔍 Check deployed URL
-.PHONY: url
-url:
-	@echo "🚀 Deployed to: $(CLOUD_RUN_URL)"
-
-# 🧹 Clean Docker images
 .PHONY: clean
 clean:
-	docker rmi $(APP_NAME) || true
+	rm -rf __pycache__ .pytest_cache *.pyc $(VENV_NAME)
