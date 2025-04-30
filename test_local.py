@@ -1,23 +1,18 @@
 from agent import GPTVoiceAgent
 from tts import synthesize_cartesia
-from emailer import send_appointment_email
 
 agent = GPTVoiceAgent()
 
-while not agent.is_complete():
+while True:
     user_input = input("🧍 You say: ")
     reply, done, data = agent.process_input(user_input)
     print("🤖 Agent replies:", reply)
 
-    try:
-        audio_url = synthesize_cartesia(reply)
-        print(f"🎧 Voice output URL: {audio_url}")
-    except Exception as e:
-        print(f"❌ TTS failed: {e}")
+    synthesize_cartesia(reply)
 
-print("\n✅ Data collected:")
-print(data)
+    if done:
+        break
 
-print("📧 Sending confirmation email...")
-send_appointment_email(data)
-print("✅ Email sent.")
+print("\n✅ Final collected data:")
+for k, v in data.items():
+    print(f" - {k}: {v}")

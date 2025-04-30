@@ -6,58 +6,50 @@ openai.api_key = OPENAI_API_KEY
 class GPTVoiceAgent:
     def __init__(self):
         self.collected = {}
-        self.required_fields = [
+        self.fields_order = [
             "name", "dob", "insurance", "referral",
             "complaint", "address", "contact", "appointment"
         ]
+        self.prompts = {
+            "name": "What is your full name?",
+            "dob": "What is your date of birth?",
+            "insurance": "Can you provide your insurance provider and ID?",
+            "referral": "Do you have a referral? If so, from which doctor?",
+            "complaint": "What is the reason for your visit today?",
+            "address": "Can you tell me your complete address?",
+            "contact": "What’s your phone number and (optionally) email?",
+            "appointment": "Here are some available slots: Dr. Jane - Monday 10AM, Dr. Smith - Tuesday 3PM. Which would you prefer?"
+        }
+        self.current_index = 0  # track which field we're on
 
     def is_complete(self):
-        return all(k in self.collected for k in self.required_fields)
+        return self.current_index >= len(self.fields_order)
 
     def process_input(self, user_input):
-        prompt = f"""
-You are a helpful medical intake assistant. Ask questions to gather the following:
+        field = self.fields_order[self.current_index]
 
-- Patient's name
-- Date of birth
-- Insurance info (payer + ID)
-- Referral and referring physician (if applicable)
-- Chief complaint
-- Address (must be complete)
-- Contact (phone number, optional email)
-- Then offer a fake appointment (doctor + time)
-
-Here’s what we have so far: {self.collected}
-
-User says: "{user_input}"
-
-Reply conversationally AND provide JSON like this:
-
-{{
-  "name": "...",
-  "dob": "...",
-  "insurance": "...",
-  "referral": "...",
-  "complaint": "...",
-  "address": "...",
-  "contact": "...",
-  "appointment": "..."
-}}
+        # Attempt to extract the field from GPT
+        prompt = f"""Extract the user's {field} from this message: "{user_input}".
+Only return the raw value. If it's not provided, return "None".
 """
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.6
+            temperature=0.4
         )
+        answer = response['choices'][0]['message']['content'].strip()
 
-        reply = response['choices'][0]['message']['content']
+        if answer.lower() != "none":
+            self.collected[field] = answer
+            print(f"✅ Collected {field}: {answer}")
+            self.current_index += 1  # move to next field
+        else:
+            print(f"❌ Could not extract {field}. Re-asking.")
 
-        # Naive JSON extraction (mock - for real use, use json mode/function calling)
-        # You should replace this with proper JSON parsing
-        if "Sarah Smith" in user_input:
-            self.collected["name"] = "Sarah Smith"
-        if "May 2" in user_input or "born" in user_input:
-            self.collected["dob"] = "1985-05-02"
-        # Extend similar checks...
+        # Check if done
+        if self.is_complete():
+            return "Thanks! All information is collected.", True, self.collected
 
-        return reply, self.is_complete(), self.collected
+        # Ask the next question
+        next_field = self.fields_order[self.current_index]
+        return self.prompts[next_field], False, self.collected
