@@ -4,3 +4,5 @@ requests
 sendgrid
 gunicorn
 python-dotenv
+cartesia
+ffmpeg
