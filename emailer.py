@@ -6,7 +6,7 @@ def send_appointment_email(data):
     # 👇 Must match verified sender from SendGrid
     from_email = "wintongee1@gmail.com"
     to_emails = [
-        "wintongee@gmail.com",  # Change to Assort emails when verified
+        "jeff@assorthealth.com", "connor@assorthealth.com", "cole@assorthealth.com"
     ]
 
     html_content = "<h3>New Appointment Collected:</h3><br>" + \
