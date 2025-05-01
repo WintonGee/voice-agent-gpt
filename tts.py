@@ -24,7 +24,8 @@ def synthesize_cartesia(text: str) -> str:
     )
 
     with open(filepath, "wb") as f:
-        f.write(audio_bytes)
+        f.write(b"".join(audio_bytes))
+
 
     # This is the public URL that Twilio needs
     return f"{PUBLIC_URL}/static/audio/{filename}"
