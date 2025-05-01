@@ -1,5 +1,6 @@
 import openai
 from config import OPENAI_API_KEY
+from validator import validate_us_address  # ✅ New import
 
 openai.api_key = OPENAI_API_KEY
 
@@ -28,7 +29,7 @@ class GPTVoiceAgent:
     def process_input(self, user_input):
         field = self.fields_order[self.current_index]
 
-        # Attempt to extract the field from GPT
+        # GPT field extraction
         prompt = f"""Extract the user's {field} from this message: "{user_input}".
 Only return the raw value. If it's not provided, return "None".
 """
@@ -40,16 +41,19 @@ Only return the raw value. If it's not provided, return "None".
         answer = response['choices'][0]['message']['content'].strip()
 
         if answer.lower() != "none":
+            # ✅ Address validation hook
+            if field == "address" and not validate_us_address(answer):
+                print("❌ Invalid address format. Asking again.")
+                return "Hmm, that doesn't seem like a valid address. Can you say it again, including the ZIP code?", False, self.collected
+
             self.collected[field] = answer
             print(f"✅ Collected {field}: {answer}")
-            self.current_index += 1  # move to next field
+            self.current_index += 1
         else:
             print(f"❌ Could not extract {field}. Re-asking.")
 
-        # Check if done
         if self.is_complete():
             return "Thanks! All information is collected.", True, self.collected
 
-        # Ask the next question
         next_field = self.fields_order[self.current_index]
         return self.prompts[next_field], False, self.collected
