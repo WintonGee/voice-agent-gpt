@@ -1,6 +1,6 @@
 from emailer import send_appointment_email
 
-# Mocked patient intake data (normally from agent.collected)
+# Mocked patient intake data
 mock_data = {
     "name": "Test Patient",
     "dob": "1990-01-01",
@@ -13,6 +13,7 @@ mock_data = {
 }
 
 print("📬 Sending test email with mocked data...")
+
 try:
     send_appointment_email(mock_data)
     print("✅ Test email sent.")
