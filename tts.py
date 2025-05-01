@@ -1,6 +1,7 @@
 import os
 from cartesia import Cartesia
-from config import CARTESIA_API_KEY
+from config import CARTESIA_API_KEY, PUBLIC_URL
+
 
 client = Cartesia(api_key=CARTESIA_API_KEY)
 
@@ -28,4 +29,4 @@ def synthesize_cartesia(text: str) -> str:
 
 
     # This is the public URL that Twilio needs
-    return f"{PUBLIC_URL}/static/audio/{filename}"
+    return f"/static/audio/{filename}"  # ✅ No PUBLIC_URL here

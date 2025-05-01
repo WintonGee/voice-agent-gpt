@@ -3,12 +3,51 @@ from agent import GPTVoiceAgent
 from stt import transcribe_audio
 from tts import synthesize_cartesia
 from emailer import send_appointment_email
-from config import PUBLIC_URL  # <— for serving full audio URLs
+from config import PUBLIC_URL
 
 app = Flask(__name__)
-
-# AI agent instance
 agent = GPTVoiceAgent()
+
+# ===========
+# HELPERS
+# ===========
+
+def build_twiml_play_and_record(audio_url: str) -> str:
+    return f"""
+    <Response>
+        <Play>{audio_url}</Play>
+        <Record action="/transcribe" maxLength="6" playBeep="true" />
+    </Response>
+    """
+
+def build_twiml_say_and_record(prompt: str) -> str:
+    return f"""
+    <Response>
+        <Say>{prompt}</Say>
+        <Record action="/transcribe" maxLength="6" playBeep="true" />
+    </Response>
+    """
+
+def build_twiml_final(audio_url: str, goodbye_url: str) -> str:
+    return f"""
+    <Response>
+        <Play>{audio_url}</Play>
+        <Play>{goodbye_url}</Play>
+        <Hangup/>
+    </Response>
+    """
+
+def build_twiml_error(message: str) -> str:
+    return f"""
+    <Response>
+        <Say>{message}</Say>
+        <Hangup/>
+    </Response>
+    """
+
+# ===========
+# ROUTES
+# ===========
 
 @app.route("/", methods=["GET"])
 def index():
@@ -16,7 +55,6 @@ def index():
 
 @app.route("/voice", methods=["POST"])
 def voice():
-    # Entry point when a call hits your Twilio number
     if agent.is_complete():
         return Response("<Response><Say>Thank you. Goodbye.</Say><Hangup/></Response>", mimetype="text/xml")
 
@@ -24,32 +62,19 @@ def voice():
     prompt = agent.prompts[current_field]
 
     try:
-        # Generate voice from prompt and return public URL
-        audio_path = synthesize_cartesia(prompt)  # returns relative path like "/static/audio/output.wav"
+        audio_path = synthesize_cartesia(prompt)
         audio_url = f"{PUBLIC_URL}{audio_path}"
-
-        twiml = f"""
-        <Response>
-            <Play>{audio_url}</Play>
-            <Record action="/transcribe" maxLength="6" playBeep="true" />
-        </Response>
-        """
+        twiml = build_twiml_play_and_record(audio_url)
     except Exception:
-        twiml = f"""
-        <Response>
-            <Say>{prompt}</Say>
-            <Record action="/transcribe" maxLength="6" playBeep="true" />
-        </Response>
-        """
+        twiml = build_twiml_say_and_record(prompt)
 
     return Response(twiml, mimetype="text/xml")
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
     recording_url = request.form.get("RecordingUrl")
-
     if not recording_url:
-        return Response("<Response><Say>Error: No audio found.</Say><Redirect>/voice</Redirect></Response>", mimetype="text/xml")
+        return Response(build_twiml_error("No audio found."), mimetype="text/xml")
 
     print(f"🎙️ Received recording: {recording_url}")
 
@@ -70,31 +95,20 @@ def transcribe():
             goodbye_path = synthesize_cartesia("Your appointment is confirmed. Goodbye.")
             goodbye_url = f"{PUBLIC_URL}{goodbye_path}"
 
-            twiml = f"""
-            <Response>
-                <Play>{audio_url}</Play>
-                <Play>{goodbye_url}</Play>
-                <Hangup/>
-            </Response>
-            """
+            twiml = build_twiml_final(audio_url, goodbye_url)
         else:
-            twiml = f"""
-            <Response>
-                <Play>{audio_url}</Play>
-                <Redirect>/voice</Redirect>
-            </Response>
-            """
+            # ✅ NO redirect — ask next question immediately
+            twiml = build_twiml_play_and_record(audio_url)
 
     except Exception as e:
         print(f"❌ Error in /transcribe: {e}")
-        twiml = f"""
-        <Response>
-            <Say>Sorry, something went wrong. Please try again later.</Say>
-            <Hangup/>
-        </Response>
-        """
+        twiml = build_twiml_error("Sorry, something went wrong. Please try again later.")
 
     return Response(twiml, mimetype="text/xml")
+
+# ===========
+# MAIN
+# ===========
 
 if __name__ == "__main__":
     app.run(port=8080)
