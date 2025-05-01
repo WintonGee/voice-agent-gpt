@@ -1,20 +1,19 @@
 import os
-import subprocess
 from cartesia import Cartesia
 from config import CARTESIA_API_KEY
 
 client = Cartesia(api_key=CARTESIA_API_KEY)
 
-def synthesize_cartesia(text, filename="output.wav"):
-    if not CARTESIA_API_KEY:
-        raise ValueError("CARTESIA_API_KEY is not set")
+def synthesize_cartesia(text: str) -> str:
+    filename = f"output.wav"
+    filepath = f"static/audio/{filename}"
 
-    audio_stream = client.tts.bytes(
+    audio_bytes = client.tts.bytes(
         model_id="sonic-2",
         transcript=text,
         voice={
             "mode": "id",
-            "id": "694f9389-aac1-45b6-b726-9d9369183238",  # Barbershop Man
+            "id": "694f9389-aac1-45b6-b726-9d9369183238",
         },
         language="en",
         output_format={
@@ -24,15 +23,8 @@ def synthesize_cartesia(text, filename="output.wav"):
         },
     )
 
-    with open(filename, "wb") as f:
-        for chunk in audio_stream:
-            f.write(chunk)
+    with open(filepath, "wb") as f:
+        f.write(audio_bytes)
 
-    print(f"🎧 Audio saved to: {filename}")
-
-    try:
-        subprocess.run(["ffplay", "-autoexit", "-nodisp", filename], check=True)
-    except FileNotFoundError:
-        print("⚠️  ffplay not found — skipping playback")
-
-    return filename
+    # This is the public URL that Twilio needs
+    return f"{PUBLIC_URL}/static/audio/{filename}"
