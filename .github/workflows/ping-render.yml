@@ -1,0 +1,12 @@
+name: Keep Render App Warm
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # every 10 minutes UTC
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send GET request to Render app
+        run: curl -s https://voice-agent-gpt.onrender.com/ > /dev/null
